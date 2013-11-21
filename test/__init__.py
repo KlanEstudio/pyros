@@ -1,7 +1,7 @@
 #coding: utf-8
 
-import test_test
-
 def load_tests(loader, tests, pattern):
+    import test_test
+
     tests.addTests(loader.loadTestsFromModule(test_test))
     return tests
