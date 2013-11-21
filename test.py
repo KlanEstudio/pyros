@@ -101,6 +101,10 @@ class Test(tester.Request):
         assert(result['success'])
         print "elemento eliminado"
 
+import unittest
+
 if __name__ == '__main__':
-    test = Test(url)
-    test.run()
+    #test = Test(url)
+    #test.run()
+    suite = unittest.TestSuite(unittest.defaultTestLoader.discover('.', pattern = 'test'))
+    unittest.TextTestRunner().run(suite)
