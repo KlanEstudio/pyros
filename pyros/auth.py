@@ -79,7 +79,12 @@ def auth(authclass, method=''):
                     if(sep == '?'):
                         sep = '&'
             
-            datastring = datastring + ' ' + web.data()
+            if met in ['POST', 'PUT', 'DELETE']:
+                data = web.data()
+            else:
+                data= ''
+            
+            datastring = datastring + ' ' + data
             
             if(not authobj.is_valid(datastring, signature, timestamp)):
                 raise AuthError(u"Autenticación no válida")
