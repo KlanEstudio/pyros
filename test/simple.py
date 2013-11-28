@@ -8,7 +8,8 @@ Created on 12/06/2012
 '''
 import web
 import unittest
-import random, string, json
+import random, string, json, time
+import hmac, hashlib
 from pyros import restobject, auth, database, urlmapper
 from pyros.test.request import Request
 
@@ -20,6 +21,8 @@ urls = urlmap.get_map()
 
 db = {'dbn': 'mysql', 'host': 'localhost', 'user': 'root', 'password': '', 'database': 'pyros_test'}
 database.Database.initialize(db)
+
+restobject.debug_info = True
 
 class Basic(restobject.RestObject):
     @restobject.get_all
@@ -176,22 +179,63 @@ class Authenticated(restobject.RestObject):
     @auth.auth(SimpleAuth1)
     @restobject.get_all
     def prueba_autenticacion(self):
-        return self._resp("mensaje", "autorizado GET")
+        return {"success": True, "mensaje": "autorizado GET"}
     
     @auth.auth(SimpleAuth2)
     @restobject.post
     def prueba_auth_post(self):
-        return self._resp("mensaje", "autorizado POST")
+        return {"success": True, "mensaje": "autorizado POST"}
     
     @auth.auth(SimpleAuth3)
     @restobject.put_all
     def prueba_auth_put(self):
-        return self._resp("mensaje", "autorizado PUT")
+        return {"success": True, "mensaje": "autorizado PUT"}
     
     @auth.auth(SimpleAuth4)
     @restobject.delete_all
     def prueba_auth_del(self):
-        return self._resp("mensaje", "autorizado DELETE")
+        return {"success": True, "mensaje": "autorizado DELETE"}
+    
+class TestAuthenticated(unittest.TestCase):
+    def setUp(self):
+        self.request = Request(urls)
+        self.key = "1234"
+    
+    def test_authentication(self):
+        timestamp = str(int(time.time()))
+        datastring = unicode(u"GET /auth/?data=áéíóúñ&timestamp=" + timestamp + ' ')
+        signature = hmac.new(self.key, datastring.encode('utf-8'), hashlib.sha256).hexdigest()
+        response = json.loads(self.request.get('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature, ''))
+        self.assertIsNotNone(response, 'No se recuperaron resultados')
+        self.assertTrue(response['success'], 'Falló la petición')
+        self.assertEquals('autorizado GET', response['mensaje'], 'Mensaje no corresponde')
+        data = json.dumps({"prueba": u"áéíóúñ"})
+        datastring = unicode(u"POST /auth/?data=áéíóúñ&timestamp=" + timestamp + ' ' + data)
+        signature = hmac.new(self.key, datastring.encode('utf-8'), hashlib.sha256).hexdigest()
+        response = json.loads(self.request.post('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature, data))
+        self.assertIsNotNone(response, 'No se recuperaron resultados')
+        self.assertTrue(response['success'], 'Falló la petición')
+        self.assertEquals('autorizado POST', response['mensaje'], 'Mensaje no corresponde')
+        data = json.dumps({"prueba": u"áéíóúñ"})
+        datastring = unicode(u"PUT /auth/?data=áéíóúñ&timestamp=" + timestamp + ' ' + data)
+        signature = hmac.new(self.key, datastring.encode('utf-8'), hashlib.sha256).hexdigest()
+        response = json.loads(self.request.put('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature, data))
+        self.assertIsNotNone(response, 'No se recuperaron resultados')
+        self.assertTrue(response['success'], 'Falló la petición')
+        self.assertEquals('autorizado PUT', response['mensaje'], 'Mensaje no corresponde')
+        data = json.dumps({"prueba": u"áéíóúñ"})
+        datastring = unicode(u"DELETE /auth/?data=áéíóúñ&timestamp=" + timestamp + ' ' + data)
+        signature = hmac.new(self.key, datastring.encode('utf-8'), hashlib.sha256).hexdigest()
+        response = json.loads(self.request.delete('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature, data))
+        self.assertIsNotNone(response, 'No se recuperaron resultados')
+        self.assertTrue(response['success'], 'Falló la petición')
+        self.assertEquals('autorizado DELETE', response['mensaje'], 'Mensaje no corresponde')
+    
+    def test_failed_authentication(self):
+        pass
+    
+    def tearDown(self):
+        pass
     
 credentials = {'username': 'hola', 'password': 'mundo'}
 class HTTPAuth(restobject.RestObject):
