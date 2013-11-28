@@ -11,7 +11,7 @@ import unittest
 import random, string, json, time
 import hmac, hashlib
 from pyros import restobject, auth, database, urlmapper
-from pyros.test.request import Request
+from pyros.test.request import Request, StatusError
 
 urlmap = urlmapper.URL()
 urlmap.add('/basic', 'test.simple.Basic')
@@ -202,10 +202,11 @@ class TestAuthenticated(unittest.TestCase):
         self.key = "1234"
     
     def test_authentication(self):
+        u'''Pruebas de autenticación correcta'''
         timestamp = str(int(time.time()))
         datastring = unicode(u"GET /auth/?data=áéíóúñ&timestamp=" + timestamp + ' ')
         signature = hmac.new(self.key, datastring.encode('utf-8'), hashlib.sha256).hexdigest()
-        response = json.loads(self.request.get('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature, ''))
+        response = json.loads(self.request.get('/auth/?data=áéíóúñ&timestamp=' + timestamp + '&signature=' + signature))
         self.assertIsNotNone(response, 'No se recuperaron resultados')
         self.assertTrue(response['success'], 'Falló la petición')
         self.assertEquals('autorizado GET', response['mensaje'], 'Mensaje no corresponde')
@@ -232,10 +233,30 @@ class TestAuthenticated(unittest.TestCase):
         self.assertEquals('autorizado DELETE', response['mensaje'], 'Mensaje no corresponde')
     
     def test_failed_authentication(self):
-        pass
-    
-    def tearDown(self):
-        pass
+        u'''Pruebas de autenticación fallida'''
+        try:
+            response = json.loads(self.request.get('/auth/'))
+            print response
+        except StatusError as e:
+            self.assertEquals(str(e), '401 Unauthorized', 'No se nego la autorización de la petición')
+            
+        try:
+            response = json.loads(self.request.post('/auth/', {}))
+            print response
+        except StatusError as e:
+            self.assertEquals(str(e), '401 Unauthorized', 'No se nego la autorización de la petición')
+            
+        try:
+            response = json.loads(self.request.put('/auth/', {}))
+            print response
+        except StatusError as e:
+            self.assertEquals(str(e), '401 Unauthorized', 'No se nego la autorización de la petición')
+            
+        try:
+            response = json.loads(self.request.delete('/auth/'))
+            print response
+        except StatusError as e:
+            self.assertEquals(str(e), '401 Unauthorized', 'No se nego la autorización de la petición')
     
 credentials = {'username': 'hola', 'password': 'mundo'}
 class HTTPAuth(restobject.RestObject):
