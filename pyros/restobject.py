@@ -152,6 +152,10 @@ class BaseRestObject(object):
         u"""Finaliza la herencia del constructor e inicializa un buffer de salida"""
         ## Finaliza la cadena de MRO
         self.buffer = ''
+        
+    def OPTIONS(self, *args):
+        u"""Finaliza la herencia del método OPTIONS"""
+        assert not hasattr(super(BaseRestObject, self), 'OPTIONS')
     
     def GET(self, *args):
         u"""Finaliza la herencia del método GET y devuelve la respuesta almacenada en el buffer"""
@@ -185,6 +189,7 @@ class RestObject(BaseRestObject):
     u"""Prototipo de un objeto REST para construir un nodo en el API a través de decorators"""
     def __init__(self, **kwargs):
         u"""Recorre la lista de métodos del objeto y los ordena en los métodos GET, POST, PUT y DELETE"""
+        self.allowed_domains = None
         self.get_functions = {}
         self.post_functions = {}
         self.put_functions = {}
@@ -202,9 +207,22 @@ class RestObject(BaseRestObject):
             except AttributeError:
                 pass 
         super(RestObject, self).__init__(**kwargs)
+        
+    def OPTIONS(self, *args):
+        u"""Finaliza la herencia del método OPTIONS y devuelve la respuesta almacenada en el buffer"""
+        assert not hasattr(super(BaseRestObject, self), 'OPTIONS')
+        self._headers()
+        
+    def _headers(self):
+        u"""Configura las cabeceras de permisos para el sistema"""
+        if self.allowed_domains is not None:
+            web.header('Access-Control-Allow-Origin', self.allowed_domains)
+        web.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        web.header('Access-Control-Allow-Headers', 'content-type')
     
     def GET(self, element=None, type_list=None, *args):
         u"""Devuelve la respuesta al método GET del protocolo HTTP"""
+        self._headers()
         if(type_list is None or type_list == '/'):
             try:
                 if(element is None or element == '/'):
@@ -228,6 +246,7 @@ class RestObject(BaseRestObject):
     
     def POST(self, element=None, type_list=None, *args):
         u"""Devuelve la respuesta al método POST del protocolo HTTP"""
+        self._headers()
         if(type_list is None or type_list == '/'):
             try:
                 if(element is None or element == '/'):
@@ -251,6 +270,7 @@ class RestObject(BaseRestObject):
     
     def PUT(self, element=None, type_list=None, *args):
         u"""Devuelve la respuesta al método PUT del protocolo HTTP"""
+        self._headers()
         if(type_list is None or type_list == '/'):
             try:
                 if(element is None or element == '/'):
@@ -274,6 +294,7 @@ class RestObject(BaseRestObject):
     
     def DELETE(self, element=None, type_list=None, *args):
         u"""Devuelve la respuesta al método DELETE del protocolo HTTP"""
+        self._headers()
         if(type_list is None or type_list == '/'):
             try:
                 if(element is None or element == '/'):
